@@ -4,6 +4,7 @@ import model.Funcionario;
 import model.PeriodoFerias;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Scanner;
 
@@ -29,7 +30,7 @@ public class RHController {
             exibirInformacoes(funcionario);
             exibirInformacoesFerias(periodoFerias);
 
-            // Confirmar o registro de férias
+            // Confirmar o registro de férias apenas se o cálculo for bem-sucedido
             confirmarRegistroFerias(new Scanner(System.in));
         } else {
             System.out.println("Critérios de férias não atendidos. Encerrando o cálculo.");
@@ -47,31 +48,34 @@ public class RHController {
         return null;
     }
 
-    private boolean verificarCriteriosFerias(Funcionario funcionario, LocalDate dataInicio, int duracao) {
-        if (!funcionario.verificarDireitoFerias()) {
-            System.out.println("O funcionário não possui direito a férias no momento, de acordo com as regras da CLT.");
+    public boolean verificarCriteriosFerias(Funcionario funcionario, LocalDate dataInicio, int duracao) {
+        System.out.println("Data de admissão: " + funcionario.getDataAdmissao());
+
+        LocalDate dataAquisitivaInicio = funcionario.getDataAdmissao().plusYears(1);
+        LocalDate dataAquisitivaLimite = dataAquisitivaInicio.plusYears(1).minusDays(1);
+
+        System.out.println("Data aquisitiva início: " + dataAquisitivaInicio);
+        System.out.println("Data aquisitiva limite: " + dataAquisitivaLimite);
+        System.out.println("Data de início das férias: " + dataInicio);
+
+        int duracaoMinima = 14;
+        int duracaoMaxima = 30;
+
+        if (duracao < duracaoMinima || duracao > duracaoMaxima) {
+            System.out.println("O período de férias deve ser no mínimo " + duracaoMinima + " dias e no máximo "
+                    + duracaoMaxima + " dias corridos de acordo com as regras da CLT.");
             return false;
         }
 
-        // Atualizado para considerar o período aquisitivo de 12 meses
-        LocalDate dataAquisitivaInicio = funcionario.getDataAdmissao().plusMonths(1);
-        LocalDate dataAquisitivaLimite = funcionario.getDataAdmissao().plusMonths(12);
-
-        System.out.println("Data de Início do Período Aquisitivo: " + dataAquisitivaInicio);
-        System.out.println("Data Limite do Período Aquisitivo: " + dataAquisitivaLimite);
-        System.out.println("Data de Início das Férias: " + dataInicio);
-
-        if (dataInicio.isBefore(dataAquisitivaInicio) || dataInicio.isAfter(dataAquisitivaLimite)) {
-            System.out.println("O período de férias deve estar dentro do período aquisitivo do funcionário.");
+        if (dataInicio.isAfter(dataAquisitivaInicio) || dataInicio.isEqual(dataAquisitivaInicio)
+                && dataInicio.isBefore(dataAquisitivaLimite)) {
+            return true;
+        } else {
+            System.out.println("A data de início das férias deve ser após o período aquisitivo do funcionário.");
             return false;
         }
 
-        if (duracao > 30) {
-            System.out.println("O período de férias não pode ser superior a 30 dias corridos.");
-            return false;
-        }
 
-        return true;
     }
 
     private PeriodoFerias calcularPeriodoFerias(Funcionario funcionario, LocalDate dataInicio, int duracao) {
@@ -81,8 +85,12 @@ public class RHController {
         }
 
         LocalDate dataTermino = dataInicio.plusDays(duracao - 1);
-        if (dataTermino.isAfter(funcionario.getDataAdmissao().plusMonths(12).plusDays(30))) {
-            System.out.println("O período de férias ultrapassa o limite permitido pela CLT (30 dias corridos).");
+
+        // Verificar se o período ultrapassa 30 dias corridos
+        long diasAteLimite = ChronoUnit.DAYS.between(dataInicio, dataTermino) + 1;
+
+        if (diasAteLimite < 14 || diasAteLimite > 30) {
+            System.out.println("O período de férias deve ser no mínimo 14 dias e no máximo 30 dias corridos de acordo com as regras da CLT.");
             return null;
         }
 
@@ -114,6 +122,7 @@ public class RHController {
     private void confirmarRegistroFerias(Scanner scanner) {
         System.out.print("Deseja confirmar o registro de férias? (S para sim, N para não): ");
         String resposta = scanner.nextLine().toUpperCase();
+
         if ("S".equals(resposta)) {
             System.out.println("Férias confirmadas e registradas no banco de dados do nosso RH.");
         } else {

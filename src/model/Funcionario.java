@@ -42,7 +42,7 @@ public class Funcionario {
 
     private boolean tempoTrabalhoSuficiente() {
         LocalDate hoje = LocalDate.now();
-        LocalDate umAnoAtras = dataAdmissao.plus(1, ChronoUnit.YEARS);
+        LocalDate umAnoAtras = dataAdmissao.plusYears(1);
         return !hoje.isBefore(umAnoAtras);
     }
 
